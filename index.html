@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reconhecimento Facial</title>
+  <style>
+    video {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+    #emotion {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      padding: 10px;
+      background-color: rgba(0, 0, 0, 0.5);
+      color: white;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <video id="videoInput" width="720" height="560" autoplay muted></video>
+  <div id="emotion">Detectando...</div>
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script>
+    
+    if (typeof faceapi === 'undefined') {
+      console.error('Erro: face-api.js não carregado corretamente.');
+    } else {
+      window.onload = async function() {
+        await setup();
+      };
+
+      async function setup() {
+        try {
+          await faceapi.nets.ssdMobilenetv1.loadFromUri('./models');
+          await faceapi.nets.faceExpressionNet.loadFromUri('./models');
+          
+          const video = document.getElementById('videoInput');
+          const emotionDiv = document.getElementById('emotion');
+          
+          
+          const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+          video.srcObject = stream;
+
+          video.onplay = () => {
+            setInterval(async () => {
+              const detections = await faceapi.detectAllFaces(video).withFaceExpressions();
+              if (detections.length > 0) {
+                const emotions = detections[0].expressions;
+                const dominantEmotion = Object.keys(emotions).reduce((a, b) => emotions[a] > emotions[b] ? a : b);
+                emotionDiv.innerText = `Emoção detectada: ${dominantEmotion}`;
+              }
+            }, 100);
+          };
+        } catch (err) {
+          console.error('Erro ao carregar ou executar a face-api.js:', err);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
